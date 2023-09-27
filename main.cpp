@@ -29,6 +29,7 @@ FIL fil;
 FIL audio_file;
 FRESULT fr;
 
+char midifiles[30][10];
 #define NUM_BUFFERS 1
 #define BUFFER_LEN 32768
 #define BUFFER_BYTES (BUFFER_LEN*2)
@@ -98,21 +99,22 @@ int main()
          sleep_ms(5000000);
       return 0;
       }
-      
+
       sleep_ms(5000);
       
-      int pos =0;
          graphics.set_pen(7);
          graphics.text("files", Point(0, 0), FRAME_WIDTH);
          display.flip();
          graphics.text("files", Point(0, 0), FRAME_WIDTH);
          display.flip();
-
+         
+      int pos =0;
       FILINFO file;
       auto dir = new DIR();
       printf("Listing /\n");
       f_opendir(dir, "/");
       while(f_readdir(dir, &file) == FR_OK && file.fname[0]) {
+         //midifiles[pos] = file.fname;
          graphics.text(file.fname, Point(40, pos*20+20), FRAME_WIDTH);
          printf("%s %d\n", file.fname, file.fsize);
          display.flip();
@@ -121,7 +123,11 @@ int main()
          pos++;
       }
       
-      char filetext[20];
+      fr = f_open(&audio_file, midifiles[0], FA_READ);
+      if (fr != FR_OK) {
+         printf("Failed to open midi file, error: %d\n", fr);
+         return 0;
+      }      char filetext[20];
       fill_file_buffer();
        
 // SD card read file not working yet

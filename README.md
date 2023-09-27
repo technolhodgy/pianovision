@@ -19,4 +19,4 @@ pianoVision enables you to learn to play piano/keyboard with notes diplayed on a
 
 Basic project was set up by https://github.com/Gadgetoid from which I used as a starting point.
 
-Contains code from - Copyright 2023 (c) Michael Bell - https://github.com/MichaelBell/picovision-projects
+Contains code from - Copyright 2023 (c) Michael Bell - https://github.com/MichaelBell/badapple
