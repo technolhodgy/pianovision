@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <iterator>
 #include <sstream>
+#include <string>
+#include <iostream>
 
 #include <stdio.h>
 #include "hardware/gpio.h"
@@ -29,7 +31,10 @@ FIL fil;
 FIL audio_file;
 FRESULT fr;
 
+
 char midifiles[30][10];
+char text[30];
+
 #define NUM_BUFFERS 1
 #define BUFFER_LEN 32768
 #define BUFFER_BYTES (BUFFER_LEN*2)
@@ -37,6 +42,9 @@ unsigned char  buf[NUM_BUFFERS][BUFFER_LEN];
 volatile uint write_buf;
 volatile uint read_buf;
 uint buf_idx;
+
+int f,x,y,l;
+int b =0;
 
 DVDisplay display;
 PicoGraphics_PenDV_P5 graphics(FRAME_WIDTH, FRAME_HEIGHT, display);
@@ -63,6 +71,7 @@ static void fill_file_buffer() {
 int main() 
 {
    stdio_init_all();
+     
    constexpr uint BUTTON_Y = 9;
    gpio_init(BUTTON_Y);
    gpio_set_dir(BUTTON_Y, GPIO_IN);
@@ -81,8 +90,6 @@ int main()
 
    while(true) 
    {
-
-
       graphics.set_pen(BLACK);
       graphics.clear();
       display.flip();
@@ -100,12 +107,38 @@ int main()
       return 0;
       }
 
-      sleep_ms(5000);
-      
-         graphics.set_pen(7);
-         graphics.text("files", Point(0, 0), FRAME_WIDTH);
+      for(f = 0; f<8 ; f++)
+      {
+         logooffset = f>>1;
+         for (y = 0; y < 40; y++ )
+         {
+            if (y > 9)
+            {
+               graphics.set_pen(10);
+            } else {
+               graphics.set_pen(12);
+            }
+            for (x = 0; x<32 ; x++ )
+            {
+               b= ( pilogo[y] >> x ) & 1;
+               if ( b == 1)
+               {
+                  graphics.pixel(Point(x + pilogos[logooffset], y));
+               //graphics.text(".", Point(x, y), FRAME_WIDTH);
+               }
+            }
+            graphics.set_pen(7);
+            graphics.text("+", Point(78, 12), FRAME_WIDTH);
+         }
          display.flip();
-         graphics.text("files", Point(0, 0), FRAME_WIDTH);
+      }
+
+      sleep_ms(6000);
+         
+         graphics.set_pen(7);
+         graphics.text("files", Point(0, 60), FRAME_WIDTH);
+         display.flip();
+         graphics.text("files", Point(0, 60), FRAME_WIDTH);
          display.flip();
          
       int pos =0;
@@ -114,72 +147,125 @@ int main()
       printf("Listing /\n");
       f_opendir(dir, "/");
       while(f_readdir(dir, &file) == FR_OK && file.fname[0]) {
-         //midifiles[pos] = file.fname;
-         graphics.text(file.fname, Point(40, pos*20+20), FRAME_WIDTH);
-         printf("%s %d\n", file.fname, file.fsize);
-         display.flip();
-         graphics.text(file.fname, Point(40, pos*20+20), FRAME_WIDTH);
-         display.flip();
+         sprintf(midifiles[pos*30],"%s\n",file.fname);
          pos++;
+      }
+      
+      // ################################### #### 
+      int selection =0 ;
+      int ybutton =1; 
+      //while(false)
+      //while ( true )
+      while ( gpio_get(BUTTON_Y ) )
+      {
+         if(display.is_button_a_pressed())
+         {
+            selection --;
+            if (selection <0 )
+            {
+               selection = 4 ;
+            }
+            while(display.is_button_a_pressed())
+            {}
+         }
+         
+         if(display.is_button_x_pressed())
+         {
+            selection ++;
+            if (selection >4 )
+            {
+               selection = 0 ;
+            }
+            while(display.is_button_x_pressed())
+            {}
+         }
+
+         for ( l = 0; l<2; l++)
+         {
+            for(f = 0; f < 5; f++) {
+               if (f == selection) 
+               {
+                  graphics.set_pen(1);
+               } else {
+                  graphics.set_pen(0);
+               }
+               graphics.rectangle({238,f*20+76,200,20});
+               graphics.set_pen(7);            
+               graphics.text(midifiles[f*30], Point(240, f*20+76), FRAME_WIDTH);
+            }  
+            display.flip();
+         }
+         
+         graphics.text("....", Point(440, 20), FRAME_WIDTH);
+         display.flip();
+         graphics.text("....", Point(440, 20), FRAME_WIDTH);
+         display.flip();
+         
       }
       
       fr = f_open(&audio_file, midifiles[0], FA_READ);
       if (fr != FR_OK) {
          printf("Failed to open midi file, error: %d\n", fr);
          return 0;
-      }      char filetext[20];
+      }      
+      
+      
+      char filetext[20];
+      
       fill_file_buffer();
-       
+      
+      sprintf(filetext,"%u",write_buf);
+      graphics.text(filetext, Point(20, 180), FRAME_WIDTH);
+      display.flip();  
+      graphics.text(filetext, Point(20, 180), FRAME_WIDTH);
+      display.flip(); 
+      
+      
+      
 // SD card read file not working yet
-      for (int file =0; file < 20; file ++)
+
+      for (int file =0; file < 15; file ++)
       {
-         sprintf(filetext,"%d");
-         graphics.text(filetext, Point(20, file * 16+80), FRAME_WIDTH);
+         sprintf(filetext,"%d",file);
+         graphics.text("test", Point(320, 180), FRAME_WIDTH);
+         graphics.text(filetext, Point(20, file * 16+200), FRAME_WIDTH);
          display.flip();  
-         graphics.text(filetext, Point(20, file * 16+80), FRAME_WIDTH);
+         graphics.text("test", Point(320, 180), FRAME_WIDTH);
+         graphics.text(filetext, Point(20, file * 16+200), FRAME_WIDTH);
          display.flip();  
          sleep_ms(500);
+         graphics.text("test", Point(320, 180), FRAME_WIDTH);
       }
       //sleep_ms(500000);
       
-// ################################### #### 
-      int selection =0 ;
 
-      while ( !selection )
+      while(true)
       {
-         //selection =1; // this is to wait for file selction, skipping for now
-         if(gpio_get(BUTTON_Y) == 0) {
-            selection = 1;
-         }
-      }
-      
-   while(true)
-   {
-      for (int x =0 ; x <16 ; x ++)
-      {
-         for (int y =0 ; y <16 ; y ++)
+         for ( x =0 ; x <16 ; x ++)
          {
-            graphics.set_pen(x);
-            graphics.rectangle({x*40,y*32,40,32});
-            graphics.set_pen(y);
-            graphics.text("AHOY", Point(x*40, y*32+8), FRAME_WIDTH);
-            
+            for ( y =0 ; y <16 ; y ++)
+            {
+               graphics.set_pen(x);
+               graphics.rectangle({x*40,y*32,40,32});
+               graphics.set_pen(y);
+               graphics.text("AHOY", Point(x*40, y*32+8), FRAME_WIDTH);
+               
+            }
          }
-      }
-      display.flip();
-      sleep_ms(5000000);
-      for (int x =0 ; x <16 ; x ++)
-      {
-         for (int y =0 ; y <16 ; y ++)
+         display.flip();
+         sleep_ms(5000000);
+         for (int x =0 ; x <16 ; x ++)
          {
-            graphics.set_pen(x);
-            graphics.rectangle({x*40,y*32,40,32});
-            graphics.set_pen(y);
-            graphics.text("AHOY", Point(x*40, y*32+8), FRAME_WIDTH);
+            for (int y =0 ; y <16 ; y ++)
+            {
+               graphics.set_pen(x);
+               graphics.rectangle({x*40,y*32,40,32});
+               graphics.set_pen(y);
+               graphics.text("AHOY", Point(x*40, y*32+8), FRAME_WIDTH);
+            }
          }
+         display.flip();
+         sleep_ms(5000000);
       }
-      display.flip();
-      sleep_ms(5000000);
-   }
    }
 }
