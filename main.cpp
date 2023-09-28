@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include "hardware/gpio.h"
-#include "hardware/uart.h"
+//#include "hardware/uart.h"
 #include "drivers/dv_display/dv_display.hpp"
 #include "libraries/pico_graphics/pico_graphics_dv.hpp"
 
@@ -72,6 +72,26 @@ int main()
 {
    stdio_init_all();
      
+   constexpr uint BUTTON_TX = 0;
+   gpio_init(BUTTON_TX);
+   gpio_set_dir(BUTTON_TX, GPIO_IN);
+   gpio_pull_up(BUTTON_TX);
+   constexpr uint BUTTON_RX = 1;
+   gpio_init(BUTTON_RX);
+   gpio_set_dir(BUTTON_RX, GPIO_IN);
+   gpio_pull_up(BUTTON_RX);
+
+   constexpr uint BUTTON_BRX = 4;
+   gpio_init(BUTTON_BRX);
+   gpio_set_dir(BUTTON_BRX, GPIO_IN);
+   gpio_pull_up(BUTTON_BRX);
+   constexpr uint BUTTON_BTX = 5;
+   gpio_init(BUTTON_BTX);
+   gpio_set_dir(BUTTON_BTX, GPIO_IN);
+   gpio_pull_up(BUTTON_BTX);
+   constexpr uint BUTTON_SDA = 6;
+
+   
    constexpr uint BUTTON_Y = 9;
    gpio_init(BUTTON_Y);
    gpio_set_dir(BUTTON_Y, GPIO_IN);
@@ -146,8 +166,13 @@ int main()
       auto dir = new DIR();
       printf("Listing /\n");
       f_opendir(dir, "/");
-      while(f_readdir(dir, &file) == FR_OK && file.fname[0]) {
-         sprintf(midifiles[pos*30],"%s\n",file.fname);
+      while(f_readdir(dir, &file) == FR_OK && file.fname[0] && pos < 30) {
+         sprintf(midifiles[pos],"%s\n",file.fname);
+         graphics.set_pen(7);            
+         graphics.text(midifiles[pos], Point(40, pos*20+76), FRAME_WIDTH);
+         display.flip();
+         graphics.text(midifiles[pos], Point(40, pos*20+76), FRAME_WIDTH);
+         display.flip();
          pos++;
       }
       
@@ -186,21 +211,35 @@ int main()
                if (f == selection) 
                {
                   graphics.set_pen(1);
+                  if (!gpio_get(BUTTON_RX)) {
+                  graphics.set_pen(4);                     
+                  }
+                  if (!gpio_get(BUTTON_TX)) {
+                  graphics.set_pen(6);                     
+                  }
+                  if (!gpio_get(BUTTON_BRX)) {
+                  graphics.set_pen(5);                     
+                  }
+                  if (!gpio_get(BUTTON_BTX)) {
+                  graphics.set_pen(3);                     
+                  }
+
                } else {
                   graphics.set_pen(0);
                }
-               graphics.rectangle({238,f*20+76,200,20});
-               graphics.set_pen(7);            
-               graphics.text(midifiles[f*30], Point(240, f*20+76), FRAME_WIDTH);
+               graphics.rectangle({236,f*20+74,220,20});
+               graphics.set_pen(7);       
+               sprintf(text,"%s \n",midifiles[f]);
+               graphics.text(midifiles[f], Point(240, f*20+76), FRAME_WIDTH);
             }  
             display.flip();
          }
          
-         graphics.text("....", Point(440, 20), FRAME_WIDTH);
+        /* graphics.text("....", Point(440, 20), FRAME_WIDTH);
          display.flip();
          graphics.text("....", Point(440, 20), FRAME_WIDTH);
          display.flip();
-         
+         */
       }
       
       fr = f_open(&audio_file, midifiles[0], FA_READ);
