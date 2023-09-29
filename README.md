@@ -13,7 +13,7 @@ pianoVision enables you to learn to play piano/keyboard with notes diplayed on a
 
 ## Documentation
 
-* [Docs: Usage](docs/USAGE.md)
+* [Docs: Usage](USAGE.md)
 
 ## Notes
 
