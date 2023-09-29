@@ -43,12 +43,14 @@ unsigned char midibyte[2];
 #define NUM_BUFFERS 1
 #define BUFFER_LEN 65536
 #define BUFFER_BYTES (BUFFER_LEN*2)
-unsigned char  buf[NUM_BUFFERS][BUFFER_LEN];
+unsigned char  buf[BUFFER_LEN];
+unsigned char  mididata[BUFFER_LEN];
+unsigned int midilenght;
 volatile uint write_buf;
 volatile uint read_buf;
 uint buf_idx;
 
-int f,x,y,l;
+int f,x,y,l,p;
 int b =0;
 int retval;
 uint  pos =0;
@@ -79,7 +81,7 @@ void dispaly_error (char message[30],int status,int flip)
 
 
 
-static uint fill_file_buffer(char midifile[30]) {
+static uint fill_midi_buffer(char midifile[30]) {
     fr = f_open(&fil, midifile, FA_READ);
         if (fr != FR_OK) {
             printf("Failed to open file, error: %d\n", fr);
@@ -104,13 +106,26 @@ static uint fill_file_buffer(char midifile[30]) {
     uint bytes_read;
     while (!f_eof(&fil))
     {
-         fr = f_read(&fil, buf[write_buf], 1, &bytes_read);
-         sprintf(text,"x%02X %u",buf[write_buf],pos);
-         dispaly_error(text,1,0);
+         fr = f_read(&fil, &buf[write_buf], 1, &bytes_read);
+         sprintf(text,"%0d",buf[write_buf]);
+         mididata[pos] = atoi(text);
+         //dispaly_error(text,1,0);
+         //sleep_ms(1000);
          pos++;
+        
+    }
+   midilenght = pos;
+   /*
+    for (f =0; f<pos;f++)
+    {
+         //sprintf(text,"x%02X %u",buf[f],f);
+         sprintf(text,"x%02X %u",mididata[f],f);
+         dispaly_error(text,1,0);
+         sleep_ms(1000);
     }
          sprintf(text,"%d\n", pos);
          dispaly_error(text,1,1);
+    */
 
     /*pos = 0;
     for (;;) {
@@ -315,22 +330,16 @@ int main()
          */
       }
       
-      graphics.set_pen(BLACK);
-      graphics.clear();
-      graphics.set_pen(7);       
-      graphics.text("File: ", Point(40, 10), FRAME_WIDTH);
-      graphics.set_pen(16);       
-      graphics.text(midifiles[selection], Point(110, 10), FRAME_WIDTH);
-      display.flip();
-      graphics.set_pen(BLACK);
-      graphics.clear();
-      graphics.set_pen(7);       
-      graphics.text("File: ", Point(40, 10), FRAME_WIDTH);
-      graphics.set_pen(16);       
-      graphics.text(midifiles[selection], Point(110, 10), FRAME_WIDTH);
-      display.flip();
-      graphics.set_pen(7);       
-
+      for (p=0;p<2;p++)
+      {
+         graphics.set_pen(BLACK);
+         graphics.clear();
+         graphics.set_pen(7);       
+         graphics.text("File: ", Point(10, 10), FRAME_WIDTH);
+         graphics.set_pen(16);       
+         graphics.text(midifiles[selection], Point(60, 10), FRAME_WIDTH);
+         display.flip();
+      }
       fr = f_open(&audio_file, midifiles[0], FA_READ);
       if (fr != FR_OK) {
          printf("Failed to open midi file, error: %d\n", fr);
@@ -340,32 +349,32 @@ int main()
       
       char filetext[20];
       
-      retval =fill_file_buffer(midifiles[selection]);
+      retval =fill_midi_buffer(midifiles[selection]);
       sprintf(filetext,"%d",retval);
       graphics.set_pen(7);
-      graphics.text(filetext, Point(20, 30), FRAME_WIDTH);
+      graphics.text(filetext, Point(270, 10), FRAME_WIDTH);
       display.flip();  
-      graphics.text(filetext, Point(20, 30), FRAME_WIDTH);
+      graphics.text(filetext, Point(270, 10), FRAME_WIDTH);
       display.flip(); 
       
       
       
 // SD card read file not working yet
 
-      for (int file =0; file < 200 ; file ++)
+      for (int file =0; file < 400 ; file ++)
       {
          //sprintf(filetext,"%d",file);
          for (f=0;f<2;f++)
          {
             //strcpy(midibyte[0],buf[file]);
-            sprintf(filetext,"x%02X",buf[0][file]);
+            sprintf(filetext,"x%02X",mididata[file]);
             //graphics.text("test", Point(320, 50), FRAME_WIDTH);
             x = file % 16 ;
             y = (file -x);
             graphics.text(filetext, Point(x*36+64, y+50), FRAME_WIDTH);
             display.flip();  
          }
-         sleep_ms(50);
+         sleep_ms(5);
       }
       //sleep_ms(500000);
       while(true)
