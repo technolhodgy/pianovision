@@ -63,7 +63,7 @@ PicoGraphics_PenDV_P5 graphics(FRAME_WIDTH, FRAME_HEIGHT, display);
 
 //Pen BLACK = graphics.create_pen(0, 0, 0);
 //Pen WHITE  = graphics.create_pen(255, 255, 255);
-void dispaly_error (char message[30],int status,int flip)
+void display_error (char message[30],int status,int flip)
 {
    graphics.set_pen(status);            
    graphics.rectangle({330,8,300,20});
@@ -86,7 +86,7 @@ static uint fill_midi_buffer(char midifile[30]) {
         if (fr != FR_OK) {
             printf("Failed to open file, error: %d\n", fr);
             sprintf(text,"Failed to open file, error: %d\n", fr);
-            dispaly_error(text,2,1);
+            display_error(text,2,1);
             return 0;
         }
         
@@ -96,7 +96,7 @@ static uint fill_midi_buffer(char midifile[30]) {
     if (next_buf_idx == read_buf) 
     {
          sprintf(text,"#########: %d\n", fr);
-         dispaly_error(text,2,1);
+         display_error(text,2,1);
 
        return 0;
     }
@@ -109,7 +109,7 @@ static uint fill_midi_buffer(char midifile[30]) {
          fr = f_read(&fil, &buf[write_buf], 1, &bytes_read);
          sprintf(text,"%0d",buf[write_buf]);
          mididata[pos] = atoi(text);
-         //dispaly_error(text,1,0);
+         //display_error(text,1,0);
          //sleep_ms(1000);
          pos++;
         
@@ -120,17 +120,17 @@ static uint fill_midi_buffer(char midifile[30]) {
     {
          //sprintf(text,"x%02X %u",buf[f],f);
          sprintf(text,"x%02X %u",mididata[f],f);
-         dispaly_error(text,1,0);
+         display_error(text,1,0);
          sleep_ms(1000);
     }
          sprintf(text,"%d\n", pos);
-         dispaly_error(text,1,1);
+         display_error(text,1,1);
     */
 
     /*pos = 0;
     for (;;) {
        sprintf(text,"%d\n", pos);
-         dispaly_error(text,0);
+         display_error(text,0);
         fr = f_read(&fil, buf[write_buf], 32768, &pos);     // Read a chunk of src file 
         pos++;
         if (fr || pos == 0) break; // error or eof 
@@ -139,13 +139,13 @@ static uint fill_midi_buffer(char midifile[30]) {
       
     if (fr != FR_OK) {
          sprintf(text,"Failed to read data, error: %d\n", fr);
-         dispaly_error(text,2,1);
+         display_error(text,2,1);
         return -1;
     }
     write_buf = next_buf_idx;
     
          sprintf(text,"File loaded: %d\n", fr);
-         dispaly_error(text,4,1);
+         display_error(text,4,1);
 
          f_close(&fil);
     return {pos};
