@@ -377,8 +377,6 @@ int main()
          sleep_ms(5);
       }
       //sleep_ms(500000);
-      while(true)
-      {}
 
       while(true)
       {
