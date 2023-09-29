@@ -2,8 +2,10 @@
 #include <cstdio>
 #include <iterator>
 #include <sstream>
-#include <string>
+#include <stdlib.h>
+#include <string.h>
 #include <iostream>
+#include <fstream>
 
 #include <stdio.h>
 #include "hardware/gpio.h"
@@ -32,11 +34,14 @@ FIL audio_file;
 FRESULT fr;
 
 
-char midifiles[30][10];
+char midifiles[10][30];
 char text[30];
 
+unsigned char midibyte[2];
+
+
 #define NUM_BUFFERS 1
-#define BUFFER_LEN 32768
+#define BUFFER_LEN 65536
 #define BUFFER_BYTES (BUFFER_LEN*2)
 unsigned char  buf[NUM_BUFFERS][BUFFER_LEN];
 volatile uint write_buf;
@@ -45,6 +50,9 @@ uint buf_idx;
 
 int f,x,y,l;
 int b =0;
+int retval;
+uint  pos =0;
+uint  br;
 
 DVDisplay display;
 PicoGraphics_PenDV_P5 graphics(FRAME_WIDTH, FRAME_HEIGHT, display);
@@ -53,25 +61,86 @@ PicoGraphics_PenDV_P5 graphics(FRAME_WIDTH, FRAME_HEIGHT, display);
 
 //Pen BLACK = graphics.create_pen(0, 0, 0);
 //Pen WHITE  = graphics.create_pen(255, 255, 255);
-
-static void fill_file_buffer() {
-    uint next_buf_idx = (write_buf + 1) & 0xF;
-    if (next_buf_idx == read_buf) return;
-
-    uint bytes_read;
-    fr = f_read(&fil, buf[write_buf], BUFFER_BYTES, &bytes_read);
-    if (fr != FR_OK) {
-        printf("Failed to read data, error: %d\n", fr);
-        return;
-    }
-
-    write_buf = next_buf_idx;
+void dispaly_error (char message[30],int status,int flip)
+{
+   graphics.set_pen(status);            
+   graphics.rectangle({330,8,300,20});
+   graphics.set_pen(6);            
+   graphics.text(text, Point(340, 10), FRAME_WIDTH);
+   display.flip();
+   if (flip){
+      graphics.set_pen(status);            
+      graphics.rectangle({330,8,300,20});
+      graphics.set_pen(6);            
+      graphics.text(text, Point(340, 10), FRAME_WIDTH);
+      display.flip();  
+   }
 }
+
+
+
+static uint fill_file_buffer(char midifile[30]) {
+    fr = f_open(&fil, midifile, FA_READ);
+        if (fr != FR_OK) {
+            printf("Failed to open file, error: %d\n", fr);
+            sprintf(text,"Failed to open file, error: %d\n", fr);
+            dispaly_error(text,2,1);
+            return 0;
+        }
+        
+
+
+    uint next_buf_idx = (write_buf + 1) & 0xF;
+    if (next_buf_idx == read_buf) 
+    {
+         sprintf(text,"#########: %d\n", fr);
+         dispaly_error(text,2,1);
+
+       return 0;
+    }
+    
+    // #######################################################
+    pos=0;
+    uint bytes_read;
+    while (!f_eof(&fil))
+    {
+         fr = f_read(&fil, buf[write_buf], 1, &bytes_read);
+         sprintf(text,"x%02X %u",buf[write_buf],pos);
+         dispaly_error(text,1,0);
+         pos++;
+    }
+         sprintf(text,"%d\n", pos);
+         dispaly_error(text,1,1);
+
+    /*pos = 0;
+    for (;;) {
+       sprintf(text,"%d\n", pos);
+         dispaly_error(text,0);
+        fr = f_read(&fil, buf[write_buf], 32768, &pos);     // Read a chunk of src file 
+        pos++;
+        if (fr || pos == 0) break; // error or eof 
+    }*/
+    //fr = f_read(&fil, buf[write_buf], BUFFER_LEN, &bytes_read);
+      
+    if (fr != FR_OK) {
+         sprintf(text,"Failed to read data, error: %d\n", fr);
+         dispaly_error(text,2,1);
+        return -1;
+    }
+    write_buf = next_buf_idx;
+    
+         sprintf(text,"File loaded: %d\n", fr);
+         dispaly_error(text,4,1);
+
+         f_close(&fil);
+    return {pos};
+}
+
 
 int main() 
 {
    stdio_init_all();
-     
+
    constexpr uint BUTTON_TX = 0;
    gpio_init(BUTTON_TX);
    gpio_set_dir(BUTTON_TX, GPIO_IN);
@@ -153,7 +222,7 @@ int main()
          display.flip();
       }
 
-      sleep_ms(6000);
+      sleep_ms(4000);
          
          graphics.set_pen(7);
          graphics.text("files", Point(0, 60), FRAME_WIDTH);
@@ -161,21 +230,26 @@ int main()
          graphics.text("files", Point(0, 60), FRAME_WIDTH);
          display.flip();
          
-      int pos =0;
+
       FILINFO file;
       auto dir = new DIR();
       printf("Listing /\n");
       f_opendir(dir, "/");
       while(f_readdir(dir, &file) == FR_OK && file.fname[0] && pos < 30) {
-         sprintf(midifiles[pos],"%s\n",file.fname);
+         //sprintf(midifiles[pos],"%s\n",file.fname);
+         strcpy (midifiles[pos],file.fname);
+         //midifiles[pos+strlen(file.fname)] = '\0';
+         pos++;
+      }
+      /*for ( pos =0; pos <5;pos ++)
+      {
+
          graphics.set_pen(7);            
          graphics.text(midifiles[pos], Point(40, pos*20+76), FRAME_WIDTH);
          display.flip();
          graphics.text(midifiles[pos], Point(40, pos*20+76), FRAME_WIDTH);
          display.flip();
-         pos++;
-      }
-      
+      }  */    
       // ################################### #### 
       int selection =0 ;
       int ybutton =1; 
@@ -227,9 +301,8 @@ int main()
                } else {
                   graphics.set_pen(0);
                }
-               graphics.rectangle({236,f*20+74,220,20});
+               graphics.rectangle({236,f*20+74,320,20});
                graphics.set_pen(7);       
-               sprintf(text,"%s \n",midifiles[f]);
                graphics.text(midifiles[f], Point(240, f*20+76), FRAME_WIDTH);
             }  
             display.flip();
@@ -242,6 +315,22 @@ int main()
          */
       }
       
+      graphics.set_pen(BLACK);
+      graphics.clear();
+      graphics.set_pen(7);       
+      graphics.text("File: ", Point(40, 10), FRAME_WIDTH);
+      graphics.set_pen(16);       
+      graphics.text(midifiles[selection], Point(110, 10), FRAME_WIDTH);
+      display.flip();
+      graphics.set_pen(BLACK);
+      graphics.clear();
+      graphics.set_pen(7);       
+      graphics.text("File: ", Point(40, 10), FRAME_WIDTH);
+      graphics.set_pen(16);       
+      graphics.text(midifiles[selection], Point(110, 10), FRAME_WIDTH);
+      display.flip();
+      graphics.set_pen(7);       
+
       fr = f_open(&audio_file, midifiles[0], FA_READ);
       if (fr != FR_OK) {
          printf("Failed to open midi file, error: %d\n", fr);
@@ -251,32 +340,36 @@ int main()
       
       char filetext[20];
       
-      fill_file_buffer();
-      
-      sprintf(filetext,"%u",write_buf);
-      graphics.text(filetext, Point(20, 180), FRAME_WIDTH);
+      retval =fill_file_buffer(midifiles[selection]);
+      sprintf(filetext,"%d",retval);
+      graphics.set_pen(7);
+      graphics.text(filetext, Point(20, 30), FRAME_WIDTH);
       display.flip();  
-      graphics.text(filetext, Point(20, 180), FRAME_WIDTH);
+      graphics.text(filetext, Point(20, 30), FRAME_WIDTH);
       display.flip(); 
       
       
       
 // SD card read file not working yet
 
-      for (int file =0; file < 15; file ++)
+      for (int file =0; file < 200 ; file ++)
       {
-         sprintf(filetext,"%d",file);
-         graphics.text("test", Point(320, 180), FRAME_WIDTH);
-         graphics.text(filetext, Point(20, file * 16+200), FRAME_WIDTH);
-         display.flip();  
-         graphics.text("test", Point(320, 180), FRAME_WIDTH);
-         graphics.text(filetext, Point(20, file * 16+200), FRAME_WIDTH);
-         display.flip();  
-         sleep_ms(500);
-         graphics.text("test", Point(320, 180), FRAME_WIDTH);
+         //sprintf(filetext,"%d",file);
+         for (f=0;f<2;f++)
+         {
+            //strcpy(midibyte[0],buf[file]);
+            sprintf(filetext,"x%02X",buf[0][file]);
+            //graphics.text("test", Point(320, 50), FRAME_WIDTH);
+            x = file % 16 ;
+            y = (file -x);
+            graphics.text(filetext, Point(x*36+64, y+50), FRAME_WIDTH);
+            display.flip();  
+         }
+         sleep_ms(50);
       }
       //sleep_ms(500000);
-      
+      while(true)
+      {}
 
       while(true)
       {
