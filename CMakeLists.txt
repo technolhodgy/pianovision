@@ -37,7 +37,8 @@ include(drivers/sdcard/sdcard)
 
 # Add your source files
 add_executable(${NAME}
-    main.cpp # TODO: Add source files here!
+   main.cpp # TODO: Add source files here!
+   #main-demo.cpp # TODO: Add source files here!
 )
 
 # TODO: Don't forget to link the libraries you need!
